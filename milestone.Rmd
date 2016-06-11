@@ -1,0 +1,93 @@
+---
+title: "Efficient Estimation of Word represention in a Corpus"
+author: "Jean Marie Cimula"
+date: "12 June 2016"
+output: html_document
+---
+
+```{r results='hide', message=FALSE, warning=FALSE}
+#Loading libraries
+library(stringi)
+library(tm)
+library(knitr)
+library(ggplot2)
+library(RWeka)
+rm(list=ls())
+```
+
+
+
+#Data Load
+```{r}
+
+setwd("~/R/milestone/") #Setting the direction
+
+#Data Load
+TW <- file("data/en_US.twitter.txt")
+BL <- file("data/en_US.blogs.txt",open = "r")
+NW <- file("data/en_US.news.txt",open = "r")
+
+#Reading the files
+twitter <- readLines(TW,warn = F)
+blog    <- readLines(BL,warn = F)
+news    <- readLines(NW,warn = F)
+
+#SUMMARY OF THREE FILES
+
+#Creating a vector with the length of each dataset
+dataLength <- c(length(twitter), length(blog), length(news))
+
+#Creating a vector with the size of each dataset
+dataSize   <- c(    
+                    file.size("data/en_US.twitter.txt") / 1024 ^ 2, 
+                    file.size("data/en_US.blogs.txt")  / 1024 ^ 2, 
+                    file.size("data/en_US.news.txt")  / 1024 ^ 2 
+                )
+#Creating a vector with the count of words of each dataset
+wordCount <- c(
+                   sum(stri_count_words(twitter)), 
+                   sum(stri_count_words(blog)), 
+                   sum(stri_count_words(news))
+               )
+#Close the files
+close(TW)
+close(NW)
+close(BL)
+
+dataColumn   <- c("Filename","WordCount","LineCount","FileSize_Mb")
+FileCatagory <- c("Twitter","Blog","News")
+
+GroupData <- cbind(FileCatagory,wordCount,dataLength,round(dataSize,2)) #Preparing the dataframe
+GroupData <- as.data.frame(GroupData) #Defining the dataframe as dataframe
+colnames(GroupData) <- dataColumn #Naming the column
+
+#Printing basic summaries of the three files : Word counts, line counts, file size
+kable(GroupData)
+```
+
+#Data Cleaning
+
+```{r}
+#Merge the three files and create a corpus 10,000 per dataset
+
+twitter <- twitter[1:10000]
+blog    <- blog[1:10000]
+news    <- news[1:10000]
+  
+#dataMerged <- merge(twitter,blog)
+#dataMerged <- merge(dataMerged,news)
+
+#Creating a corpus based on News source
+dataMerged <- VCorpus(VectorSource(news))
+
+#Cleaning the corpus
+dataMerged <- tm_map(dataMerged, stripWhitespace)
+dataMerged <- tm_map(dataMerged, removeNumbers)
+dataMerged <- tm_map(dataMerged, removePunctuation)
+dataMerged <- tm_map(dataMerged, removeWords, stopwords())
+
+
+
+
+
+```
