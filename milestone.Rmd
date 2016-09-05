@@ -9,10 +9,10 @@ output: html_document
 #Loading libraries
 library(stringi)
 library(tm)
+library(ggplot2)
 library(knitr)
 library(RWeka)
 library(SnowballC)
-
 rm(list=ls())
 ```
 
@@ -69,41 +69,49 @@ kable(gpdata)
 #2.1. Data Cleaning
 
 #Using the file of news
+
 #Creating a corpus based on News source
+
 dm <- VCorpus(DirSource(directory="data/news", encoding="UTF-8"),readerControl=list(language="en"))
 
 #Creating n-grams from RWeka
+
+##Set control options for Weka learners. A list of class Weka_control which can be coerced to character for passing it to Weka.
+
 unigram <- function(x) NGramTokenizer(x, Weka_control(min = 1, max = 1))
 bigram <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
 
 #Cleaning the corpus
+##Interface to apply transformation functions (also denoted as mappings) to corpora
+
 dm <- tm_map(dm,content_transformer(removePunctuation))
 dm <- tm_map(dm,content_transformer(stripWhitespace))
 dm <- tm_map(dm,content_transformer(removeNumbers))
 dm <- tm_map(dm,PlainTextDocument)
 dm <- tm_map(dm,content_transformer(tolower))
 
-# create a DocumentTermMatrix  
-options(mc.cores=1)
+#Create a DocumentTermMatrix
+##A corpus for the constructors and either a term-document matrix or a document-term matrix or a simple triplet matrix (package slam) or a term frequency vector for the coercing functions.
+
 tunigram <- DocumentTermMatrix(dm, control=list(tokenizer=unigram))
 tbigram <- DocumentTermMatrix(dm, control=list(tokenizer=bigram))
 
-#Document Term Matrix Unigram
-findFreqTerms(tunigram, 100)
+# Plot Word Frequencies appearing in the dataset viewed like Unigram
 
-#Document Term Matrix Bigram 
-findFreqTerms(tbigram, 50)
+freq <- sort(colSums(as.matrix(tunigram)), decreasing=TRUE)
+df <- data.frame(word=names(freq), freq=freq)
 
-#2.2. Histograms to illustrate features of the data
+ggplot(df[df$freq > 8500, ], aes(x=word, y=freq)) + geom_bar(stat="identity") + 
+theme(axis.text.x=element_text(angle=45, hjust=1)) + xlab("") + ylab("Frequency") + 
+ggtitle("Words that appear over 8,500\ntimes in the News dataset")
 
-#2.2.1. Unigrams
-ugm <- inspect(tunigram)
-tugm <- table(ugm)
-hist (log(tugm), main="Histogram of Unigrams", breaks=50)
 
-#2.2.2. Bigrams
-bgm <- inspect(tbigram)
-tbgm <- table(bgm)
-hist (log(tbgm), main="Histogram of Unigrams", breaks=50)
+# Plot Word Frequencies appearing in the dataset viewed like Bigram
 
+freq <- sort(colSums(as.matrix(tbigram)), decreasing=TRUE)
+df <- data.frame(word=names(freq), freq=freq)
+
+ggplot(df[df$freq > 1900, ], aes(x=word, y=freq)) + geom_bar(stat="identity") + 
+theme(axis.text.x=element_text(angle=45, hjust=1)) + xlab("") +  ylab("Frequency") + 
+ggtitle("Words that appear over 1,900\ntimes in the News dataset")
 ```
